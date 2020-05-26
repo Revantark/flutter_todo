@@ -1,0 +1,79 @@
+Widget todolist() {
+    return ListView.builder(
+      itemCount: todos.length,
+      itemBuilder: (context, index) {
+        return Dismissible(
+          key: Key(todos[index].title),
+          background: DeleteHint(),
+          onDismissed: (direction) async {
+            bool removeItem = true;
+            final todo = todos.elementAt(index);
+            todos.removeAt(index);
+            setState(() {
+              
+              getTodos = false;
+            });
+            Scaffold.of(context).showSnackBar(SnackBar(
+              content: Text("Deleted"),
+              duration: Duration(milliseconds: 2500),
+              action: SnackBarAction(
+                  label: "undo",
+                  onPressed: () {
+                    // BlocProvider.of<TodoblocBloc>(context)
+                    //     .add(RestoreTodo(index,todo));
+                    removeItem = false;
+                    todos.insert(index, todo);
+                    setState(() {});
+                  }),
+            ));
+            Future.delayed(Duration(milliseconds: 2600), () {
+              if (removeItem) {
+                BlocProvider.of<TodoblocBloc>(context)
+                    .add(DeleteTodo(title: todo.title, index: index));
+                getTodos = true;
+              }
+            });
+          },
+          child: ListTile(
+            onTap: () async {
+              final result = await Navigator.pushNamed(context, 'edit_todo',
+                  arguments: todos[index]) as List<TodoItem>;
+
+              if (result != null) {
+                todos[index].copy(result[0]);
+                setState(() {});
+                BlocProvider.of<TodoblocBloc>(context).add(UpdateTodo(
+                    title: todos[index].title, index: index, item: result[0]));
+                getTodos = true;
+              }
+            },
+            leading: Checkbox(
+                value: todos[index].isCompleted == 0 ? false : true,
+                onChanged: (val) {
+                  if (val) {
+                    print(val);
+                    TodoItem todo = todos.elementAt(index);
+                    todo.todoCompleted();
+                    todos[index].isCompleted = 1;
+                    setState(() {});
+                    print(todo.isCompleted);
+                    BlocProvider.of<TodoblocBloc>(context).add(UpdateTodo(
+                        title: todos[index].title, index: index, item: todo));
+                  } else {
+                    TodoItem todo = todos.elementAt(index);
+                    todo.isCompleted = 0;
+                    todos[index].isCompleted = 0;
+                    print(todo.isCompleted);
+                    setState(() {});
+                    BlocProvider.of<TodoblocBloc>(context).add(UpdateTodo(
+                        title: todos[index].title, index: index, item: todo));
+                  }
+                }),
+            title: Text(todos[index].title),
+            subtitle: Text(todos[index].content),
+          ),
+        );
+      },
+    );
+  }
+}
